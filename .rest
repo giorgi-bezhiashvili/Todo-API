@@ -1,0 +1,87 @@
+### ============================================
+### JWT Auth + Tasks — REST Client test file
+### Requires VS Code extension: humao.rest-client
+### Server must be running: npm run start:dev
+### ============================================
+
+@baseUrl = http://localhost:3000
+
+### 1. Register a new user
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "testuser@example.com",
+  "password": "password123"
+}
+
+### 2. Login -> returns accessToken + refreshToken
+# Click "Send Request" above this block first, then copy the
+# accessToken from the response into @token below.
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "identifier": "testuser",
+  "password": "password123"
+}
+
+### 3. Set your token here after logging in (paste from step 2's response)
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3R1c2VyIiwic3ViIjoiNmE3YjExZjZjMGM4OTE1MGIwNTE5NmI3IiwiZW1haWwiOiJ0ZXN0dXNlckBleGFtcGxlLmNvbSIsImlhdCI6MTc4NjQ1MDQyOSwiZXhwIjoxNzg2NDU0MDI5fQ.-MUZO4mrCUtx-IdY5xBdBubPkytZcI3YxGFy725UCr0
+
+### 4. Create a task (protected — userId comes from the JWT, not the body)
+POST {{baseUrl}}/tasks
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Buy groceries",
+  "taskDescription": "Milk, eggs, bread",
+  "dueDate": "2026-08-20T00:00:00.000Z",
+  "startDate": "2026-08-11T00:00:00.000Z"
+}
+
+### 5. Get all tasks for the logged-in user (protected)
+GET {{baseUrl}}/tasks
+Authorization: Bearer {{token}}
+
+### 6. Get all tasks WITHOUT a token -> should fail with 401 Unauthorized
+GET {{baseUrl}}/tasks
+
+### 7. Generate a fresh token pair for the logged-in user (protected)
+POST {{baseUrl}}/auth/token
+Authorization: Bearer {{token}}
+
+### 8. Get your own user record by id (protected + ownership check)
+# Replace :id with your own _id (found in the register/login response)
+@myId = 6a7b11f6c0c89150b05196b7
+GET {{baseUrl}}/auth/{{myId}}
+Authorization: Bearer {{token}}
+
+### 9. Try to get a DIFFERENT user's record -> should fail with 403 Forbidden
+GET {{baseUrl}}/auth/000000000000000000000000
+Authorization: Bearer {{token}}
+
+### 10. Update your own account (protected + ownership check)
+PATCH {{baseUrl}}/auth/{{myId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "username": "testuser-renamed"
+}
+
+### 11. Try the same routes with no token at all -> should all 401
+GET {{baseUrl}}/auth/{{myId}}
+
+###
+PATCH {{baseUrl}}/auth/{{myId}}
+Content-Type: application/json
+
+{
+  "username": "hacker"
+}
+
+###
+DELETE {{baseUrl}}/auth/{{myId}}

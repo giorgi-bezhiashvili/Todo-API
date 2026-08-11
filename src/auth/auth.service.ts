@@ -6,16 +6,20 @@ import {
 import { InjectModel } from '@nestjs/mongoose'; // Added missing import
 import { Model } from 'mongoose'; // Added missing import
 import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 import { User, UserDocument } from '../schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { JwtService } from '@nestjs/jwt';
-
+import {
+  RefreshToken,
+  RefreshTokenDocument,
+} from '../schemas/refreshToken.schema';
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(RefreshToken.name)
+    private refreshTokenModel: Model<RefreshTokenDocument>,
     private jwtService: JwtService,
   ) {}
 
@@ -61,7 +65,7 @@ export class AuthService {
 
     const payload = {
       username: user.username,
-      sub: user._id,
+      sub: user._id?.toString(),
       email: user.email,
     };
 
@@ -75,7 +79,11 @@ export class AuthService {
       secret: process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_secret',
       expiresIn: '7d',
     });
-
+    const refreshTokenDocument = new this.refreshTokenModel({
+      token: refreshToken,
+      userId: user._id,
+    });
+    await refreshTokenDocument.save();
     return {
       message: 'Login successful',
       accessToken,
@@ -83,25 +91,13 @@ export class AuthService {
     };
   }
 
-  async findOne(id: string): Promise<User> {
+  async findOne(id: string): Promise<UserDocument> {
     // Finds a single user by their MongoDB _id
     const user = await this.userModel.findById(id).exec();
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     return user;
-  }
-
-  async update(id: string, updateAuthDto: UpdateAuthDto): Promise<User> {
-    // Updates the user and returns the newly updated document ({ new: true })
-    const updatedUser = await this.userModel
-      .findByIdAndUpdate(id, updateAuthDto, { new: true })
-      .exec();
-
-    if (!updatedUser) {
-      throw new NotFoundException(`User with ID ${id} not found to update`);
-    }
-    return updatedUser;
   }
 
   async remove(id: string): Promise<User> {
@@ -111,5 +107,33 @@ export class AuthService {
       throw new NotFoundException(`User with ID ${id} not found to delete`);
     }
     return deletedUser;
+  }
+  async token(
+    userId: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const user = await this.findOne(userId);
+    if (!user) {
+      throw new NotFoundException(
+        `User with ID ${userId} not found for token generation`,
+      );
+    }
+    const payload = {
+      username: user.username,
+      sub: user._id,
+      email: user.email,
+    };
+    const accessToken = this.jwtService.sign(payload, {
+      secret: process.env.ACCESS_TOKEN_SECRET || 'fallback_access_secret',
+    });
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_secret',
+      expiresIn: '7d',
+    });
+    const refreshTokenDocument = new this.refreshTokenModel({
+      token: refreshToken,
+      userId: userId,
+    });
+    await refreshTokenDocument.save();
+    return { accessToken, refreshToken };
   }
 }

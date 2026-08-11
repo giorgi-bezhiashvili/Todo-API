@@ -7,9 +7,20 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User, UserSchema } from '../schemas/user.schema';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { ConfigModule } from '@nestjs/config';
+import {
+  RefreshToken,
+  RefreshTokenSchema,
+} from '../schemas/refreshToken.schema';
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: RefreshToken.name, schema: RefreshTokenSchema },
+    ]),
     PassportModule,
     JwtModule.register({
       secret: process.env.ACCESS_TOKEN_SECRET || 'fallback_secret',

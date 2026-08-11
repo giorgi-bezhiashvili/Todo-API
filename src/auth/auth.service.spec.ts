@@ -10,6 +10,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: 'UserModel', useValue: {} },
+        { provide: 'RefreshTokenModel', useValue: {} },
         { provide: JwtService, useValue: {} },
       ],
     }).compile();
