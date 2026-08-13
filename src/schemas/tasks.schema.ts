@@ -3,9 +3,9 @@ import { HydratedDocument } from 'mongoose';
 
 export type TaskDocument = HydratedDocument<Tasks>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class Tasks {
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   title!: string;
 
   @Prop()
@@ -19,6 +19,9 @@ export class Tasks {
 
   @Prop()
   startDate!: Date;
+
+  @Prop({ required: true })
+  userId!: string;
 }
 
 export const TasksSchema = SchemaFactory.createForClass(Tasks);

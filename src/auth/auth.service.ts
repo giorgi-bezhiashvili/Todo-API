@@ -38,9 +38,11 @@ export class AuthService {
     identifier: string,
     password: string,
   ): Promise<UserDocument | null> {
-    const user = await this.userModel.findOne({
-      $or: [{ username: identifier }, { email: identifier }],
-    });
+    const user = await this.userModel
+      .findOne({
+        $or: [{ username: identifier }, { email: identifier }],
+      })
+      .select('+password');
     if (!user) {
       return null;
     }

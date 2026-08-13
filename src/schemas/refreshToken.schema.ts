@@ -10,6 +10,9 @@ export class RefreshToken {
 
   @Prop({ required: true })
   userId!: string;
+
+  @Prop({ default: Date.now, expires: 604800 }) // 7 days in seconds (7 * 24 * 60 * 60)
+  createdAt!: Date;
 }
 
 export const RefreshTokenSchema = SchemaFactory.createForClass(RefreshToken);

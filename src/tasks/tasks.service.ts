@@ -12,7 +12,6 @@ export class TasksService {
   async create(userId: string, createTaskDto: CreateTaskDto) {
     const newTask = new this.userModel({
       ...createTaskDto,
-      createdAt: new Date(),
       userId,
     });
     return await newTask.save();
